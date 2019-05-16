@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <string> 
 #include <bitcoin/system.hpp>
+#include <chrono>
 
 /* Vanity Passphrase Example by Decker (q) 2019 */
 
@@ -37,6 +38,7 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
     std::string kmd_addr, btc_addr;
     data_chunk prefix_pubkey_checksum;
 
+    auto start = chrono::steady_clock::now();    
     
     for (i=0; i<0x7FFFFFFF; i++) {
         
@@ -52,7 +54,15 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
         passphrase = join(mnemonic_words); 
         */
 
-        if ((i % 100000) == 0) cout << "[" << std::to_string(i) << "]" << endl;
+        if ((i % 100000) == 0) { 
+            
+            auto end = chrono::steady_clock::now();
+  
+            cout << "[" << std::to_string(i) << "] " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms" << endl;
+  
+            start = chrono::steady_clock::now();
+
+        }
 
         /*
 
