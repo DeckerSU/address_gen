@@ -43,7 +43,16 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
         // pattern for passphrase creation
         passphrase = start_pattern + std::to_string(i) + end_pattern;
 
-        if ((i % 100000) == 0) cout << "Passphrase: " << passphrase << endl;
+        // uncomment this if you want random passphrase
+
+        /*
+        data_chunk my_entropy(32);
+        pseudo_random_fill(my_entropy);
+        wallet::word_list mnemonic_words = wallet::create_mnemonic(my_entropy);
+        passphrase = join(mnemonic_words); 
+        */
+
+        if ((i % 100000) == 0) cout << "[" << std::to_string(i) << "]" << endl;
 
         /*
 
@@ -94,7 +103,7 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
 
         size_t pos = findCaseInsensitive(kmd_addr, find_pattern);
         if( pos != std::string::npos) {
-            cout << "KMD: " << kmd_addr << "\tPassphrase: '" << passphrase << "'" << endl;
+            // cout << "KMD: " << kmd_addr << "\tPassphrase: '" << passphrase << "'" << endl;
             cout << "KMD: " << kmd_addr.substr(0,pos) << "\x1B[33m" << kmd_addr.substr(pos, find_pattern.size()) << "\033[0m" << kmd_addr.substr(pos + find_pattern.size()) << "\tPassphrase: '" << passphrase << "'" << endl;
         }
         
