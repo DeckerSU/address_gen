@@ -12,7 +12,8 @@ using namespace libbitcoin::system;
 /* 
     https://github.com/libbitcoin/libbitcoin-system/wiki/Examples-from-Serialised-Data
     https://stackoverflow.com/questions/505021/get-bytes-from-stdstring-in-c
-
+    http://calaganne.blogspot.com/2017/04/libbitcoin-bx-seed.html
+    
 */
 
 size_t findCaseInsensitive(std::string data, std::string toSearch, size_t pos = 0)
@@ -46,13 +47,11 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
         passphrase = start_pattern + std::to_string(i) + end_pattern;
 
         // uncomment this if you want random passphrase
-
-        /*
         data_chunk my_entropy(32);
         pseudo_random_fill(my_entropy);
         wallet::word_list mnemonic_words = wallet::create_mnemonic(my_entropy);
         passphrase = join(mnemonic_words); 
-        */
+        
 
         if ((i % 100000) == 0) { 
             
@@ -131,7 +130,7 @@ int main()
     std::string start_pattern = "beginofyourpassphrase";
     std::string end_pattern = "endofyourpassphrase";
     
-    check_passphrase(start_pattern, end_pattern, "test");
+    check_passphrase(start_pattern, end_pattern, "komod");
 
     return 0; 
 }
