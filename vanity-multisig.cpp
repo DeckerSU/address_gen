@@ -4,6 +4,7 @@
 #include <bitcoin/system.hpp>
 
 #include <chrono>
+#include <pthread.h>
 
 /* Vanity Multisig Example by Decker (q) 2019 */
 
@@ -11,6 +12,12 @@ using namespace std;
 using namespace libbitcoin::system;
 using namespace libbitcoin::system::chain;
 using namespace libbitcoin::system::wallet;
+
+#define MAX_THREADS 4
+static const std::string start_pattern = "start";
+static const std::string end_pattern = "end";
+static const std::string find_pattern = "decker";
+pthread_mutex_t my_lock;
 
 /* 
     https://github.com/libbitcoin/libbitcoin-system/wiki/Examples-from-Serialised-Data
@@ -29,8 +36,14 @@ size_t findCaseInsensitive(std::string data, std::string toSearch, size_t pos = 
 	return data.find(toSearch, pos);
 }
 
-void check_passphrase(const std::string& start_pattern, const std::string& end_pattern, const std::string& find_pattern) {
+//void check_passphrase(const std::string& start_pattern, const std::string& end_pattern, const std::string& find_pattern) {
+static void* _check_passphrase(void* rawArg) {
     
+    unsigned int thr_idx = *((unsigned int *) rawArg);
+
+    /* No other thread is going to join() this one */
+    // pthread_detach(pthread_self());
+
     std::string passphrase;
 
     uint64_t i;
@@ -56,9 +69,13 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
         passphrase = join(mnemonic_words); 
         
         if ((i % 100000) == 0) { 
+
             auto end = chrono::steady_clock::now();
-            cout << "[" << std::to_string(i) << "] " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms" << endl;
+            pthread_mutex_lock(&my_lock);
+            cout << "thd." << thr_idx << " [" << std::to_string(i) << "] " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms" << endl;
+            pthread_mutex_unlock(&my_lock);
             start = chrono::steady_clock::now();
+
         }
 
         std::vector<char> passphrase_bytes(passphrase.begin(), passphrase.end());
@@ -130,7 +147,7 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
             append_checksum(prefix_secret_comp_checksum);
 
             std::string kmd_wif = encode_base58(prefix_secret_comp_checksum);
-
+            pthread_mutex_lock(&my_lock);
             cout << "Passphrase         : '" << passphrase << "'" << endl;
             cout << "KMD address        : " << kmd_addr << endl;
             cout << "Privkey (wif)      : " << kmd_wif << endl;
@@ -139,6 +156,7 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
             cout << "Script address     : " << multisig_str.substr(0,pos) << "\x1B[33m" << multisig_str.substr(pos, find_pattern.size()) << "\033[0m" << multisig_str.substr(pos + find_pattern.size()) << endl;
             cout << "Reedem script (asm): " << multiSig.to_string(1) << endl;
             cout << "Reedem script (hex): " << encode_base16(multiSig.to_data(false)) << endl;
+            pthread_mutex_unlock(&my_lock);
             //cout << "KMD: " << multisig_str.substr(0,pos) << "\x1B[33m" << multisig_str.substr(pos, find_pattern.size()) << "\033[0m" << multisig_str.substr(pos + find_pattern.size()) << "\tPassphrase: '" << passphrase << "'" << endl;
         }
         
@@ -150,15 +168,41 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
         */
     }
 
-    return;
+    pthread_exit(nullptr);
 }
 
 int main() 
-{ 
-    std::string start_pattern = "start";
-    std::string end_pattern = "end";
-    
-    check_passphrase(start_pattern, end_pattern, "decker");
+{
+
+    // https://eax.me/pthreads/
+    //check_passphrase(start_pattern, end_pattern, "decker");
+
+    pthread_t thr[MAX_THREADS];
+    unsigned int ints[MAX_THREADS];
+
+    int index = 0;
+
+    while (index < MAX_THREADS) {
+        ints[index] = index;
+        if (pthread_create(&(thr[index]), nullptr, _check_passphrase, &ints[index]))
+            throw std::runtime_error("pthread_create() failed");
+        index++;
+    }
+
+    /*
+    index = 0;
+    while (index < MAX_THREADS) {
+        pthread_mutex_lock(&my_lock);
+        cout << "Joining index #" << index << endl;
+        pthread_mutex_unlock(&my_lock);
+        pthread_join(thr[index], NULL);
+        index++;
+    }
+    */
+
+    pthread_join(thr[0], NULL);
+
+    std::cout << "Done!" << std::endl;
 
     return 0; 
 }
