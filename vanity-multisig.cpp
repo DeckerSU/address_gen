@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <cstdint>
 #include <string> 
 #include <bitcoin/system.hpp>
@@ -13,7 +14,7 @@ using namespace libbitcoin::system;
 using namespace libbitcoin::system::chain;
 using namespace libbitcoin::system::wallet;
 
-#define MAX_THREADS 4
+#define MAX_THREADS 12
 static const std::string start_pattern = "start";
 static const std::string end_pattern = "end";
 static const std::string find_pattern = "decker";
@@ -37,7 +38,7 @@ size_t findCaseInsensitive(std::string data, std::string toSearch, size_t pos = 
 }
 
 //void check_passphrase(const std::string& start_pattern, const std::string& end_pattern, const std::string& find_pattern) {
-static void* _check_passphrase(void* rawArg) {
+/*static*/ void* _check_passphrase(void* rawArg) {
     
     unsigned int thr_idx = *((unsigned int *) rawArg);
 
@@ -68,13 +69,13 @@ static void* _check_passphrase(void* rawArg) {
         wallet::word_list mnemonic_words = wallet::create_mnemonic(my_entropy);
         passphrase = join(mnemonic_words); 
         
-        if ((i % 100000) == 0) { 
+        if ((i % 1000000) == 0) {
 
-            auto end = chrono::steady_clock::now();
             pthread_mutex_lock(&my_lock);
-            cout << "thd." << thr_idx << " [" << std::to_string(i) << "] " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms" << endl;
-            pthread_mutex_unlock(&my_lock);
+            auto end = chrono::steady_clock::now();
+            cout << "thd." << setw(3) << setfill('0') << thr_idx << " [" << setw(10) << setfill('0') << i << "] " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms" << endl;
             start = chrono::steady_clock::now();
+            pthread_mutex_unlock(&my_lock);
 
         }
 
@@ -148,6 +149,8 @@ static void* _check_passphrase(void* rawArg) {
 
             std::string kmd_wif = encode_base58(prefix_secret_comp_checksum);
             pthread_mutex_lock(&my_lock);
+            cout << '\a' << flush; // beep/bell if found
+            cout << endl;
             cout << "Passphrase         : '" << passphrase << "'" << endl;
             cout << "KMD address        : " << kmd_addr << endl;
             cout << "Privkey (wif)      : " << kmd_wif << endl;
@@ -156,6 +159,26 @@ static void* _check_passphrase(void* rawArg) {
             cout << "Script address     : " << multisig_str.substr(0,pos) << "\x1B[33m" << multisig_str.substr(pos, find_pattern.size()) << "\033[0m" << multisig_str.substr(pos + find_pattern.size()) << endl;
             cout << "Reedem script (asm): " << multiSig.to_string(1) << endl;
             cout << "Reedem script (hex): " << encode_base16(multiSig.to_data(false)) << endl;
+            cout << endl;
+
+            std::ofstream logfile("vanity-multisig.log", ios::out | ios::app);
+            if (logfile.is_open())
+            {
+
+                logfile << endl;
+                logfile << "Passphrase         : '" << passphrase << "'" << endl;
+                logfile << "KMD address        : " << kmd_addr << endl;
+                logfile << "Privkey (wif)      : " << kmd_wif << endl;
+                logfile << "Pubkey             : " << encode_base16(pubkey) << endl;
+                //logfile << "Script address: " << multisig_str << endl;
+                logfile << "Script address     : " << multisig_str.substr(0,pos) << "\x1B[33m" << multisig_str.substr(pos, find_pattern.size()) << "\033[0m" << multisig_str.substr(pos + find_pattern.size()) << endl;
+                logfile << "Reedem script (asm): " << multiSig.to_string(1) << endl;
+                logfile << "Reedem script (hex): " << encode_base16(multiSig.to_data(false)) << endl;
+                logfile << endl;
+
+                logfile.close();
+            }
+
             pthread_mutex_unlock(&my_lock);
             //cout << "KMD: " << multisig_str.substr(0,pos) << "\x1B[33m" << multisig_str.substr(pos, find_pattern.size()) << "\033[0m" << multisig_str.substr(pos + find_pattern.size()) << "\tPassphrase: '" << passphrase << "'" << endl;
         }
