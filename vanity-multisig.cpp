@@ -14,7 +14,7 @@ using namespace libbitcoin::system;
 using namespace libbitcoin::system::chain;
 using namespace libbitcoin::system::wallet;
 
-#define MAX_THREADS 12
+#define MAX_THREADS 2
 static const std::string start_pattern = "start";
 static const std::string end_pattern = "end";
 static const std::string find_pattern = "decker";
@@ -37,8 +37,7 @@ size_t findCaseInsensitive(std::string data, std::string toSearch, size_t pos = 
 	return data.find(toSearch, pos);
 }
 
-//void check_passphrase(const std::string& start_pattern, const std::string& end_pattern, const std::string& find_pattern) {
-/*static*/ void* _check_passphrase(void* rawArg) {
+void* _check_passphrase(void* rawArg) {
     
     unsigned int thr_idx = *((unsigned int *) rawArg);
 
@@ -104,25 +103,8 @@ size_t findCaseInsensitive(std::string data, std::string toSearch, size_t pos = 
         extend_data(prefix_pubkey_checksum, my_pubkeyhash);
         append_checksum(prefix_pubkey_checksum);
 
-        
-        /*
-
-        // Base58 encode byte sequence -> Bitcoin Address
-        kmd_addr = encode_base58(prefix_pubkey_checksum);
-
-        addr_prefix = { { 0 } };
-        prefix_pubkey_checksum = to_chunk(addr_prefix);
-        extend_data(prefix_pubkey_checksum, my_pubkeyhash);
-        append_checksum(prefix_pubkey_checksum);
-        btc_addr = encode_base58(prefix_pubkey_checksum);
-        */
-
-        //cout << "BTC: " << btc_addr << endl;
-        //cout << "KMD: " << kmd_addr << endl;
-        
         // http://aaronjaramillo.org/libbitcoin-create-a-non-native-segwit-multisig-addressp2sh-p2wsh
         // https://github.com/AaronJaramillo/LibbitcoinTutorial/
-        // 
 
         // creating multisig
         data_chunk pubkey1 = to_chunk(pubkey);
@@ -170,8 +152,7 @@ size_t findCaseInsensitive(std::string data, std::string toSearch, size_t pos = 
                 logfile << "KMD address        : " << kmd_addr << endl;
                 logfile << "Privkey (wif)      : " << kmd_wif << endl;
                 logfile << "Pubkey             : " << encode_base16(pubkey) << endl;
-                //logfile << "Script address: " << multisig_str << endl;
-                logfile << "Script address     : " << multisig_str.substr(0,pos) << "\x1B[33m" << multisig_str.substr(pos, find_pattern.size()) << "\033[0m" << multisig_str.substr(pos + find_pattern.size()) << endl;
+                logfile << "Script address     : " << multisig_str << endl;
                 logfile << "Reedem script (asm): " << multiSig.to_string(1) << endl;
                 logfile << "Reedem script (hex): " << encode_base16(multiSig.to_data(false)) << endl;
                 logfile << endl;
@@ -198,7 +179,6 @@ int main()
 {
 
     // https://eax.me/pthreads/
-    //check_passphrase(start_pattern, end_pattern, "decker");
 
     pthread_t thr[MAX_THREADS];
     unsigned int ints[MAX_THREADS];
@@ -212,16 +192,8 @@ int main()
         index++;
     }
 
-    /*
-    index = 0;
-    while (index < MAX_THREADS) {
-        pthread_mutex_lock(&my_lock);
-        cout << "Joining index #" << index << endl;
-        pthread_mutex_unlock(&my_lock);
-        pthread_join(thr[index], NULL);
-        index++;
-    }
-    */
+    /* we don't need to join all threads and wait their finish,
+       program will be exited when first thread will finished. */
 
     pthread_join(thr[0], NULL);
 
