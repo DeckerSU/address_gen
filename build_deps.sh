@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# sudo apt-get install libgmp-dev libevent-dev libboost-dev libboost-system-dev libboost-filesystem-dev libboost-test-dev libboost-chrono-dev libboost-date-time-dev libboost-iostreams-dev libboost-locale-dev libboost-log-dev libboost-program-options-dev libboost-thread-dev libboost-regex-dev
 curdir=$(pwd)
 read -p "Download and build depends? [Y/n] " -n 1 -r
 if [[ $REPLY =~ ^[Yy]$ ]]
