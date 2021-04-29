@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cstdint>
-#include <string> 
+#include <string>
 #include <bitcoin/system.hpp>
 #include <chrono>
 
@@ -9,11 +9,11 @@
 using namespace std;
 using namespace libbitcoin::system;
 
-/* 
+/*
     https://github.com/libbitcoin/libbitcoin-system/wiki/Examples-from-Serialised-Data
     https://stackoverflow.com/questions/505021/get-bytes-from-stdstring-in-c
     http://calaganne.blogspot.com/2017/04/libbitcoin-bx-seed.html
-    
+
 */
 
 size_t findCaseInsensitive(std::string data, std::string toSearch, size_t pos = 0)
@@ -27,7 +27,7 @@ size_t findCaseInsensitive(std::string data, std::string toSearch, size_t pos = 
 }
 
 void check_passphrase(const std::string& start_pattern, const std::string& end_pattern, const std::string& find_pattern) {
-    
+
     std::string passphrase;
 
     uint64_t i;
@@ -39,26 +39,28 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
     std::string kmd_addr, btc_addr;
     data_chunk prefix_pubkey_checksum;
 
-    auto start = chrono::steady_clock::now();    
-    
+    auto start = chrono::steady_clock::now();
+
     for (i=0; i<0x7FFFFFFF; i++) {
-        
+
         // pattern for passphrase creation
         passphrase = start_pattern + std::to_string(i) + end_pattern;
 
         // uncomment this if you want random passphrase
+
+        /*
         data_chunk my_entropy(32);
         pseudo_random_fill(my_entropy);
         wallet::word_list mnemonic_words = wallet::create_mnemonic(my_entropy);
         passphrase = join(mnemonic_words); 
-        
+        */
 
-        if ((i % 100000) == 0) { 
-            
+        if ((i % 100000) == 0) {
+
             auto end = chrono::steady_clock::now();
-  
+
             cout << "[" << std::to_string(i) << "] " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms" << endl;
-  
+
             start = chrono::steady_clock::now();
 
         }
@@ -82,17 +84,18 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
         sha256sum[31] = sha256sum[31] | 64;
         auto sha256sum_hex = encode_base16(sha256sum);
         // sha256(passbegin0passend) - 96d112c61d41264bef50c9d9ac87d174b1d24d137b5eb05263b8c9ba469970bc
-        //                             90d112c61d41264bef50c9d9ac87d174b1d24d137b5eb05263b8c9ba4699707c 
-        
+        //                             90d112c61d41264bef50c9d9ac87d174b1d24d137b5eb05263b8c9ba4699707c
+
         // cout << "Privkey: " << sha256sum_hex << endl;
         decode_base16(privkey, sha256sum_hex);
         secret_to_public(pubkey, privkey);
         std::string pubkeyhex_str = encode_base16(pubkey);
+
         // cout << "Pubkey: " << pubkeyhex_str << endl;
 
         // Pubkeyhash: sha256 + hash160
         auto my_pubkeyhash = bitcoin_short_hash(pubkey);
-        
+
         addr_prefix = { { 60 } };
         // Byte sequence = prefix + pubkey + checksum(4-bytes)
         prefix_pubkey_checksum = to_chunk(addr_prefix);
@@ -110,27 +113,41 @@ void check_passphrase(const std::string& start_pattern, const std::string& end_p
         //cout << "BTC: " << btc_addr << endl;
         //cout << "KMD: " << kmd_addr << endl;
 
+        if (pubkeyhex_str.substr(2,6) == "777777") {
+            cout << "Pubkey: " << pubkeyhex_str << "\tPassphrase: '" << passphrase << "'" << endl;
+            cout << "KMD: " << kmd_addr << endl;
+        }
+
         size_t pos = findCaseInsensitive(kmd_addr, find_pattern);
-        if( pos != std::string::npos) {
+        if( pos != std::string::npos)
+        {
             // cout << "KMD: " << kmd_addr << "\tPassphrase: '" << passphrase << "'" << endl;
             cout << "KMD: " << kmd_addr.substr(0,pos) << "\x1B[33m" << kmd_addr.substr(pos, find_pattern.size()) << "\033[0m" << kmd_addr.substr(pos + find_pattern.size()) << "\tPassphrase: '" << passphrase << "'" << endl;
+            {
+                // log to file
+                std::ofstream outfile;
+                outfile.open("passphrases.txt", std::ios_base::app); // append instead of overwrite
+                outfile << "KMD: " << kmd_addr << " (" << pubkeyhex_str << ")" << " - Passphrase: '" << passphrase << "'" << std::endl;
+                outfile.close();
+            }
         }
-        
+        /*
         int len = 3;
         if (btc_addr.substr(1,len) == kmd_addr.substr(1,len)) {
             cout << "KMD: " << kmd_addr << ", BTC: " << btc_addr << "\tPassphrase: '" << passphrase << "'" << endl;
         }
+        */
     }
 
     return;
 }
 
-int main() 
-{ 
+int main()
+{
     std::string start_pattern = "beginofyourpassphrase";
-    std::string end_pattern = "endofyourpassphrase";
-    
+    std::string end_pattern   = "endofyourpassphrase";
+
     check_passphrase(start_pattern, end_pattern, "komod");
 
-    return 0; 
+    return 0;
 }
