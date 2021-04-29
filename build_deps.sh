@@ -19,6 +19,7 @@ cd $curdir/depends
 git clone https://github.com/libbitcoin/libbitcoin
 cd $curdir/depends/libbitcoin
 sed -i 's/1.62.0/1.58.0/g' configure.ac 
+sed -i 's/1.72.0/1.58.0/g' configure.ac
 ./autogen.sh
 # --enable-static --disable-shared 
 secp256k1_LIBS="-L$curdir/depends_build/lib -lsecp256k1 -lgmp" secp256k1_CFLAGS=-I$curdir/depends_build/include ./configure --prefix=$curdir/depends_build
